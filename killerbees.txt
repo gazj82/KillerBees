@@ -1,0 +1,672 @@
+; Killer Bees
+
+COPPERTYPE0.l=$6 ;8 bitplanes
+;COPPERTYPE0+$10 ;smooth scrolling
+COPPERTYPE0+$20 ;dual playfield
+;COPPERTYPE0+$10000 ;aga colours
+
+COPPERTYPE1.l=$5 ;8 bitplanes
+;COPPERTYPE1+$10 ;smooth scrolling
+;COPPERTYPE1+$20 ;dual playfield
+;COPPERTYPE1+$10000 ;aga colours
+
+
+.variables
+DEFTYPE .w
+Dim humd(5):Dim humc(5):Dim humx(5):Dim humy(5):Dim humf(5):Dim hums(5):Dim humxo(5):Dim humyo(5):Dim humcount(5)
+Dim humstuck(5)
+Dim ened(6):Dim enec(6):Dim enex(6):Dim eney(6):Dim enef(6):Dim enes(6):Dim enexo(6):Dim eneyo(6):Dim enem(6):Dim enet(6)
+minx=22:maxx=280:miny=22:maxy=218
+plyx=153:plyy=120:plyf=26:plyhp=0:plyhps=0:plymhp=5:laser=0
+hums=200:enes=200:humsp=0:humsdead=0
+hsc=0:sc=0:level=1:gs=0
+voice=0:mescount=199:load$="dev:":ver$="1.1"
+
+.bitmaps
+BitMap 0,320,DispHeight,4
+BitMap 1,320,DispHeight,4
+BitMap 2,320,DispHeight,5
+;load iff's into bitmaps
+InitPalette 0,8 ;main game pallete
+InitPalette 2,32 ;title screen palette
+LoadPalette 0,load$+"kbees8.iff",0 ;main game pallete bg
+LoadPalette 0,load$+"kbees8.iff",8 ;main game pallete fg
+LoadPalette 0,load$+"kbees8.iff",16 ;main game pallete sprites
+LoadPalette 2,load$+"title32.iff",0 ;titlescreen pallete
+LoadBitMap 2,load$+"title32.iff" ;titlescreen
+LoadBitMap 1,load$+"kbees8.iff" ;mainsprites and fg
+LoadBitMap 0,load$+"kbeesb8.iff" ;background
+;load bitmaps into shapes
+Use BitMap 1
+;player shapes
+For i=26To45
+GetaShape i,tc,0,16,16 ; ply1 frame
+tc+16
+Next i
+;human clockwise shapes
+GetaShape 4,0,16,16,16 ;hum frame 0
+GetaShape 5,16,16,16,16 ;hum frame 1
+GetaShape 6,32,16,16,16 ;hum frame 2
+GetaShape 7,48,16,16,16 ;hum frame 3
+;human anti clockwise shapes
+GetaShape 8,0,32,16,16 ;hum frame 0
+GetaShape 9,16,32,16,16 ;hum frame 1
+GetaShape 10,32,32,16,16 ;hum frame 2
+GetaShape 11,48,32,16,16 ;hum frame 3
+;human grave
+GetaShape 12,0,48,16,16
+GetaShape 13,16,48,16,16
+GetaShape 14,32,48,16,16
+GetaShape 15,48,48,16,16
+;killerbees blue
+GetaShape 16,0,64,16,16
+GetaShape 17,16,64,16,16
+GetaShape 18,32,64,16,16
+GetaShape 19,48,64,16,16
+;killerbees red
+GetaShape 20,0,80,16,16
+GetaShape 21,16,80,16,16
+GetaShape 22,32,80,16,16
+GetaShape 23,48,80,16,16
+;laser
+GetaShape 24,0,97,16,16
+GetaSprite 0,24 ;turn shape into sprite
+GetaShape 25,24,115,278,16 ;full width laser
+
+
+.display
+Cls
+Buffer 0,16384 ;player blit buffer
+InitCopList 0,44,DispHeight,COPPERTYPE0,4,24,0 ;gameplay screen
+InitCopList 1,44,DispHeight,COPPERTYPE1,4,32,0 ;title screen
+
+
+.queues
+For i=0To9
+Queue i,1 ;set up qblit queue's for enemies and humans
+Next i
+
+;ok enter blitz mode
+BLITZ
+
+.loop
+Gosub loadsounds ;load some sounds
+;play some startup sounds
+If voice = 0
+  Sound 9,%0011
+Else
+  Sound 5,%0011
+EndIf
+BlitzKeys On
+
+While gs<10 ;keep looping the game until someone presses F1
+  If RawStatus (80)
+  Let gs = 10
+  EndIf
+
+  If gs = 0; the title screen
+  CreateDisplay 1 ;run on display 1
+  DisplayPalette 1,2 ;and use palette 2
+  DisplayBitMap 1,2,15,0 ;display bitmap 2 on dis1
+  BitMapOutput 2 ;push text on to bitmap 2
+  DisplaySprite 0,0,-30,plyy,2 ;this moves laser sprites of screen after a gameover
+  DisplaySprite 0,0,-30,plyy,0
+  Colour 14 ;use white for text
+  Locate 0,0 ;set cursor position
+  If voice = 0
+  Print"THE VOICE IS OFF"
+  Else
+  Print"THE VOICE IS ON "
+  EndIf
+  Locate 28,0 ;set cursor
+  Print"Version ",ver$
+  mescount +1
+  If mescount = 200
+  mescount = 0
+  Read m$
+  If m$ = "END" Then Restore:Read m$
+  Locate 0,27
+  Print"                                              "
+  Locate 0,27
+  Print m$
+  EndIf
+  Locate 0,25
+  Print " Joystick Left/Right toggles the VOICE!"
+  If Joyr(1)=6 Then Let voice = 0:Gosub loadsounds:Sound 9,%1100
+  If Joyr(1)=2 Then Let voice = 1:Gosub loadsounds:Sound 5,%1100
+  VWait
+  If Joyb(1)=1 Then gs = 1
+  For i=0To5
+  Gosub enereset ;reset all enemy data ready for next game
+  Next i
+  sc=0:level=1:laser=0
+  EndIf
+
+  If gs = 1 ;start game / level
+  CreateDisplay 0 ;use display 0 - the dualplayfield one
+  DisplayPalette 0,0 ;use palette 0 on display 0
+  DisplayBitMap 0,0,15,0,1,15,0 ;use bm0 for playfiled and bm1 for other
+  humsp=0:humsdead=0:enesp=0:plyx=153:plyy=120:plyf=26:plyhp=0:plyhps=0
+  Use BitMap 1:Cls
+  For i = 0 To 5
+  Gosub enereset
+  Next i
+  Gosub levels
+  Gosub hud
+  Gosub hudupdate
+  Gosub spawnplayer
+  enesp=0
+  Let gs = 2
+  EndIf
+
+  If gs = 2 ;main game loop
+  Gosub hudupdate
+  Gosub spawnhumans
+  Gosub counters
+  Gosub enespawn ;shall we spawn an enemy?
+  Gosub laserpos
+  Gosub enemies
+  Gosub humans
+  If gs <> 4 Then Gosub player ;update player if not gameover
+  VWait
+
+  EndIf
+
+  If gs = 3 ; level complete
+  Gosub scoremulti
+  EndIf
+
+  If gs = 4 ; game over
+  Sound 9,%0011
+  For fc=1To300
+  Locate 16,15
+  Colour 2
+  NPrint"GAME OVER"
+  VWait
+  Next fc
+  Let gs = 0
+  If voice = 0
+  Sound 9,%0011
+  Else
+  Sound 5,%0011
+  EndIf
+  Locate 16,15
+  Colour 0
+  NPrint"GAME OVER"
+  EndIf
+
+Wend
+End
+
+.laserpos
+Use BitMap 1
+If laser = 1
+  If c2=1 Then Sound 3,%1100
+  If c2>15
+  DisplaySprite 0,0,1,plyy,2
+  DisplaySprite 0,0,304,plyy,0
+  Else
+  DisplaySprite 0,0,-30,plyy,2
+  DisplaySprite 0,0,-30,plyy,0
+  EndIf
+    If Joyb(1)=1
+    fired=10:laser=0
+    Sound 0,5
+    EndIf
+EndIf
+If fired>0
+  fired-1
+  If fired>5
+  Blit 25,21,plyy
+  Boxf 21,plyy,298,plyy+16,c1
+  Else
+  Boxf 21,plyy-16,298,plyy+32,0
+  DisplaySprite 0,0,-30,plyy,2
+  DisplaySprite 0,0,-30,plyy,0
+  EndIf
+EndIf
+Return
+
+
+.enespawn
+If enesp =0 Then e =1
+If enesp =1 Then e =100
+If enesp =2 Then e =400
+If enesp =3 Then e =800
+If enesp >3 Then e =1600
+s=Int(Rnd(e))
+If s < 2
+  If enesp <5
+    enesp+1
+    For c=0To4
+    If enec(c)=0
+      Let i=c:Pop For:Goto enespawn2
+    EndIf
+    Next
+    :enespawn2
+    enec(i)=1
+    enem(i)=0
+    enef(i)=16
+    enes(i)=enes
+    o=Rnd(4)
+      Select o
+      Case 0
+      Let enex(i)=4
+      Let eney(i)=54
+      Let ened(i)=1
+      Let enem(i)=25
+      Case 1
+      Let enex(i)=300
+      Let eney(i)=54
+      Let ened(i)=3
+      Let enem(i)=25
+      Case 2
+      Let enex(i)=4
+      Let eney(i)=183
+      Let ened(i)=1
+      Let enem(i)=25
+      Case 3
+      Let enex(i)=300
+      Let eney(i)=183
+      Let ened(i)=3
+      Let enem(i)=25
+      Case 4
+      Let enex(i)=153
+      Let eney(i)=4
+      Let ened(i)=2
+      Let enem(i)=25
+      End Select
+  EndIf
+EndIf
+Return
+
+.enemies
+Use BitMap 1
+For i=1 To 5
+;If fired > 0 AND (eney(i)+16)>plyy AND eney(i)<(plyy)
+If ShapesHit (25,21,plyy,4,enex(i),eney(i))=-1
+  UnQueue i+4
+  If bc = 1
+  EndIf
+  If fired = 1 Then Let enesp-1:Gosub enereset:sc+15
+EndIf
+;set / update enemy movement pattern
+Let c=enec(i)
+  Select c
+    Case 0
+      ;not spawned nothing to do
+    Case 1
+      ;blue bee
+      enet(i)+1
+      If enem(i)<1
+        ened(i)=Int(Rnd(4)):enem(i)=Int(Rnd(25))
+        If enet(i)>enered Then Let enec(i)=2:enet(i)=0
+      EndIf
+      If c1=1 Then enef(i)+1
+      If enef(i)>19 Then enef(i)=16
+    Case 2
+      ;red bee
+      enet(i)+1
+      If enet(i)>enered/2 Then Let enec(i)=1:enet(i)=0
+      Let ch=Int(Rnd(2))
+      If ch = 0
+      If eney(i)<plyy Then ened(i)=2 Else ened(i)=0
+      Else
+      If enex(i)<plyx Then ened(i)=1 Else ened(i)=3
+      EndIf
+      If enem(i)<1 Then enem(i)=Int(Rnd(25))
+      If c1=1 Then enef(i)+1
+      If enef(i)>23 Then enef(i)=20
+  End Select
+;change enemy based on direction
+enem(i)-1
+Let d=ened(i)
+  Select d
+    Case 0
+      If eney(i)<=miny
+      Let eney(i)=miny
+      Else
+      eney(i)-enes(i)/100+1
+      EndIf
+    Case 1
+      If enex(i)>=maxx
+      Let enex(i)=maxx
+      Else
+      enex(i)+enes(i)/100+1
+      EndIf
+    Case 2
+      If eney(i)>=maxy
+      Let eney(i)=maxy
+      Else
+      eney(i)+enes(i)/100+1
+      EndIf
+    Case 3
+      If enex(i)<=minx
+      Let enex(i)=minx
+      Else
+      enex(i)-enes(i)/100+1
+      EndIf
+  End Select
+If ened(i) <0 Then ened(i) = 3
+If ened(i) >3 Then ened(i) = 0
+If bc=1
+If c>0
+UnQueue i+4
+QBlit i+4,enef(i),enex(i),eney(i)
+EndIf
+EndIf
+Next
+Return
+
+.humans
+Use BitMap 1
+For i=1 To humsp
+If humf(i)=16
+Return ;forget everthing below if human is dead
+Else
+If humd(i)>3 Then humd(i)=0
+If humd(i)<0 Then humd(i)=3
+If humcount(i) >0 Then humcount(i)-1
+If humcount(i)=1 Then sc+22: humsdead+1: laser =1
+If hums(i) = 0
+  If humf(i)<12 Then humf(i)=12
+  If c1=1 AND humf(i)<15 Then humf(i)+1
+  If humf(i)=14 Then humcount(i)=5
+    If bc=0
+    UnQueue i-1:QBlit i-1,humf(i),humx(i),humy(i)
+    EndIf
+  Else
+  If c4=0 Then If hums(i)<hums Then hums(i)+1 ; slowly speedup
+  humf(i)=5
+  Let humyo(i)=humy(i):Let humxo(i)=humx(i)
+  Let d=humd(i)
+  Select d
+    Case 0
+    humf(i)=6
+      If humy(i)<=miny
+      Let humy(i)=miny:humd(i)+humc(i):Sound 1,%0011
+      Else
+      humy(i)-hums(i)/100
+      EndIf
+    Case 1
+    humf(i)=4
+      If humx(i)>=maxx
+      Let humx(i)=maxx:humd(i)+humc(i):Sound 1,%0011
+      Else
+      humx(i)+hums(i)/100
+      EndIf
+    Case 2
+    humf(i)=4
+      If humy(i)>=maxy
+      Let humy(i)=maxy:humd(i)+humc(i):Sound 1,%0011
+      Else
+      humy(i)+hums(i)/100
+      EndIf
+    Case 3
+    humf(i)=6
+      If humx(i)<=minx
+      Let humx(i)=minx:humd(i)+humc(i):Sound 1,%0011
+      Else
+      humx(i)-hums(i)/100
+      EndIf
+  End Select
+;collision with human?
+For col=1 To 5
+  If i <> col
+    If ShapesHit (27,humy(i),humx(i),27,humy(col),humx(col))=-1
+    Sound 1,%0011
+    Let humd(i)+humc(i):Let humd(col)+humc(col)
+    If humx(i)=humxo(i) AND humy(i)=humy(i) Then humstuck(i)+1
+    Let humx(i)=humxo(i):Let humy(i)=humyo(i):Let humx(col)=humxo(col):Let humy(col)=humyo(col)
+    EndIf
+  EndIf
+Next col
+If humd(i)>3 Then humd(i) = 0
+If humd(i)<0 Then humd(i) = 3
+If c1 > 1 Then humf(i)+1 ; fix this animation speed
+If humc(i)=-1 Then humf(i)+4
+If bc =0
+  UnQueue i-1
+  QBlit i-1,humf(i),humx(i),humy(i)
+EndIf
+EndIf
+EndIf
+Next i
+Return
+
+.spawnhumans
+If c5=0
+  If humsp<5
+  humsp+1:i=humsp
+  Sound 1,%0011
+  hums(i)=hums
+  humc(i)=i
+  If humc(i) < 3 Then humc(i)=-1:humd(i)=3 Else humc(i)=1
+
+  Let humdir = Rnd(5)
+  Select humdir
+  Case 0
+  humx(i)=34
+  humy(i)=54
+  humd(i)=1
+  Case 1
+  humx(i)=270
+  humy(i)=54
+  humd(i)=3
+  Case 2
+  humx(i)=34
+  humy(i)=183
+  humd(i)=1
+  Case 3
+  humx(i)=270
+  humy(i)=183
+  humd(i)=3
+  Case 4
+  humx(i)=153
+  humy(i)=34
+  humd(i)=2
+  End Select
+  Let humxo(i)=humx(i)
+  Let humyo(i)=humy(i)
+    For col=0 To 4
+      If col <> i
+      If ShapesHit (4,humx(i),humy(i),4,humx(col),humy(col))=-1 Then Gosub humanreset:humsp-1
+      EndIf
+    Next
+  EndIf
+EndIf
+Return
+
+.counters
+c1+1: c2+1: c4+1: c3+1: c5+1::c6+1:bc+1; ply anim speed
+If c1=4 Then c1=0  ;general counter
+If c2=30 Then c2=0 ;laser flash counter
+If c3=2 Then c3=0 ;stung by a bee sound counter
+If c4=2 Then c4=0 ;human speed up counter
+If c5=50 Then c5=0 ;human spawn speed counter
+If c6=8 Then c6=0 ;sting a human sound counter
+If bc=2 Then bc =0; blit count, blit humans and players every other frame
+If humsdead = 5 Then gs = 3
+If plyhp = plymhp Then gs = 4 ;check player hp for gameover
+Return
+
+.spawnplayer
+Sound 5,%0011
+For i=45 To 26 Step -1
+UnBuffer 0
+BBlit 0,i,plyx,plyy
+For c=0 To 2
+VWait
+Next
+Next
+Return
+
+.player
+Use BitMap 0
+If c1 = 1 Then plyf+1
+If plyf = 30+(plyhp*4) Then plyf=26+(plyhp*4)
+If bc = 1
+  UnBuffer 0
+  BBlit 0,plyf,plyx,plyy
+EndIf
+plyx +Joyx(1)*4
+plyy +Joyy(1)*4
+plyy =QLimit(plyy,miny,maxy)
+plyx =QLimit(plyx,minx,maxx)
+;check collision with human
+For i=1To5
+  If ShapesHit (26,plyy,plyx,26,humy(i),humx(i))=-1
+    If hums(i)<101
+      hums(i)=0:humc(i)=5:humd(i)=5
+      Else
+      hums(i)-hums/100
+        If c6=0
+          If plyx<200
+          Sound 2,%0001
+          EndIf
+          If plyx>100
+          Sound 2,%0010
+          EndIf
+        EndIf
+    EndIf
+  EndIf
+Next i
+;check collision with enemy
+For i=1To5
+  If ShapesHit (26,plyy,plyx,26,eney(i),enex(i))=-1
+    If c3=0
+    If plyx<151
+      Sound 4,%0001
+      Else
+      Sound 4,%0010
+    EndIf
+    EndIf
+    If c1=0
+      plyhps+1
+    If plyhps=3 Then plyhps=0:plyhp+1
+        EndIf
+  EndIf
+Next i
+Return
+
+.hud
+BitMapOutput 0
+Colour 1
+Locate 2,0
+NPrint "High"
+Locate 22,0
+NPrint "Score         "
+Return
+
+.hudupdate
+Colour 4
+If sc > hsc Then hsc=sc
+Locate 7,0
+NPrint hsc
+Locate 28,0
+NPrint sc
+Locate 35,0
+NPrint level,"  "
+Return
+
+.scoremulti
+Sound 6,%0011
+For fc=0 To 60
+VWait
+Next fc
+For i = plyhp*2 To plymhp*2
+bonus = plymhp*2 - plyhp*2
+sc+(bonus*10)*2
+Gosub hudupdate
+For fc=0 To 5
+  If fc < 3
+  Colour 3
+  Else
+  Colour 2
+  EndIf
+If fc = 1 Then Sound 7,%0011
+Locate 33,0
+Print"x"
+Locate 30,1
+Print i-plyhp*2,"x",(bonus*10)*2
+VWait
+Next fc
+UnBuffer 0
+BBlit 0,plyf,plyx,plyy
+plyf+2
+If plyf > 45 Then plyf=45 :UnBuffer 0
+Next i
+Sound 8,%0011
+level +1 : gs = 1
+For fc = 0 To 30
+Locate 33,0
+Colour 0
+NPrint "x"
+Locate 30,1
+NPrint "         "
+VWait
+Next
+Return
+
+.levels
+If level = 1 Then hums=200:enes=200:enered=2000
+If level = 2 Then hums=200:enes=200:enered=2000
+If level = 3 Then hums=300:enes=200:enered=1500
+If level = 4 Then hums=300:enes=300:enered=1500
+If level = 5 Then hums=400:enes=300:enered=1000
+If level = 6 Then hums=400:enes=400:enered=1000
+If level = 7 Then hums=500:enes=400:enered=1000
+If level = 8 Then hums=500:enes=500:enered=1000
+If level = 9 Then hums=600:enes=500:enered=750
+If level = 10 Then hums=600:enes=600:enered=750
+If level = 11 Then hums=700:enes=600:enered=500
+If level = 12 Then hums=700:enes=600:enered=500
+If level = 13 Then hums=800:enes=600:enered=500
+If level = 14 Then hums=800:enes=600:enered=500
+Return
+
+.loadsounds
+If voice = 0
+LoadSound 0,load$+"laser.iff"
+LoadSound 1,load$+"humanhit.iff"
+LoadSound 2,load$+"stinghum.iff"
+LoadSound 3,load$+"laseractive.iff"
+LoadSound 4,load$+"killerbee.iff"
+LoadSound 5,load$+"spawn.iff"
+LoadSound 6,load$+"levelend.iff"
+LoadSound 7,load$+"bonus.iff"
+LoadSound 8,load$+"bonusend.iff"
+LoadSound 9,load$+"dead.iff"
+EndIf
+
+If voice = 1
+LoadSound 0,load$+"laser.iff"
+LoadSound 1,load$+"humanhit.iff"
+LoadSound 2,load$+"stinghum.iff"
+LoadSound 3,load$+"laseractive.iff"
+LoadSound 4,load$+"killerbee.iff"
+LoadSound 5,load$+"vtitle.iff"
+LoadSound 6,load$+"vlevelend.iff"
+LoadSound 7,load$+"vbonus.iff"
+LoadSound 8,load$+"vbonusend.iff"
+LoadSound 9,load$+"vdead.iff"
+EndIf
+Return
+
+.enereset
+ened(i)=0:enec(i)=0:enex(i)=0:eney(i)=0:enef(i)=0:enes(i)=0:enexo(i)=0:eneyo(i)=0:enem(i)=0:enet(i)=0
+Return
+
+.humanreset
+humd(i)=0:humc(i)=0:humx(i)=0:humy(i)=0:humf(i)=0:hums(i)=0:humxo(i)=0:humyo(i)=0:humcount(i)=0
+humstuck(i)=0
+Return
+
+:messages
+Data$ "   Ported t' AMIGA by Gary James 2017"
+Data$ "    Original game by Bob Harris 1983"
+Data$ "   for the Philips G7000 / Odessey 2"
+Data$ ""
+Data$ "    source code included on the disk"
+Data$ "      do what ever ya want with it"
+Data$ "END"
