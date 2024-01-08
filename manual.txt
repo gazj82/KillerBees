@@ -1,0 +1,38 @@
+Killer Bees
+
+Amiga Version V1.0
+
+Original Phillips G7000 version by Bob Harris 1983
+Amiga version by Gary James 2017
+
+
+This unusual and exciting game provides plenty of scope for you to test your reactions, with no fewer than 20 different challenge levels.  With the aid of a swam of bees, controlled by Joystick in port 1, your aim will be to sting and ultimately destroy a squadron of Beelings... blue and red invaders from another world.  And the longer it takes, the more difficult it becomes, because the Beelings speed up and the swarms of deadly coloured bees guarding them become increasingly hostile.  When you successfully eliminate them all, the game will automatically move to a higher challenge level.
+
+Loading a the game
+Insert your killer bees disk into your miggy’s disk drive and wait for the title screen.
+
+Starting the game
+When the game has finished loading, you can push the joystick left or right to change between standard sound effects and the enhanced voice sounds that were used by the G7000;s voice module.
+
+Press fire when ready to start.
+
+Your swarm of white bees will then appear in the centre of the combat area.  Shortly afterwards a squadron of invaders come onto the combat area.  Note blue Beelings move in a counter clockwise direction, the red ones anti-clockwise.
+
+Now you can start earning points by stinging the invaders.  Each sting slows the Beeling down until it dies and is buried.  A gravestone confirms the kill... and a handsome points bonus for you!  It also blocks the path of those still alive.  If on the other hand you don't kill it quickly, the stung Beeling will gradually recover and speed up again.
+
+Enemy swarms
+While your white bees are chasing the Beelings, keep a careful lookout for deadly enemy swarms.  Each white bee that comes in contact with an enemy swarm will perish instantly.  Up to four swarms of these coloured bees are assigned to protect their masters.  And as time goes by, they change colour and acquire new powers.  The enemy swarms always arrive as Green Guardians, which simply roam about the combat area in a random fashion... but contact with them is nevertheless fatal.  In time they will evolve into aggressive Red Devils which will actively pursue and attack your swarm!
+
+The power of the Sting Ray
+There is one way in which your bees can protect themselves other than by simply evading the enemy.  By pressing the FIRE button, your bees will fire a broad and lethal Sting Ray horizontally across the screen,  This will completely wipe out any enemy bees in its path – green or red – at the same time earning you valuable bonus points.
+
+Soon, however, another swarm of Green Guardians will come through the tunnels to replace the victims.  Moreover, once your have fired the ray you won't be able to use it again until it has been recharged.  And the only way to do that is to kill another Beeling.  When it is recharged, a flashing flag will appear on the sides of the screen.
+
+Challenge Levels
+When the whole Beeling squadron has been destroyed the game automatically restarts – with a complete white swarm, but one challenge level higher.  In this way, the game gets progressively more difficult, with the Beeling invaders and the enemy swarms moving ever faster.  The game ends when all your white bees are eliminated.
+
+Scoring
+Each sting on an beeling................22 points
+Each enemy swarm wiped out …. 15 points
+
+Bonus points are also awarded for each challenge level completed and are calculated as follows.  10 points for each surviving white bee.  This figure is then multiplied by the number of the challenge level.  The multipication factor increases with each challenge level.  Bonus points are automatically added to the current score.

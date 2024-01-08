@@ -1,0 +1,33 @@
+*Killer Bees for amiga*
+
+* Amiga Version 1.0 - initial release
+
+Original Phillips G7000 version by Bob Harris 1983
+Amiga version by Gary James 2017
+
+It is a conversion of my favourite game on the Phillips G7000 machine. 
+Unfortunatly because the machine was quite rare people don't know of this
+fast pace game. The original was written by Bob Harris in 1983.
+
+I have already done a ZX Spectrum port in 2014 so it seemed like a good project
+for my first ever dable in Blitz Basic.
+
+It doesn't seem to work on Kickstart <2.  Hopefully someone can help fix this.
+Although the speed on an A500 maybe too slow anyway.  
+
+The source is included on the disk for anyone interested.
+
+So I guess the minimum requirements for now are 68020 and Kickstart >1.3
+
+The .adf file is a finished disk image for use in / on amigas
+
+The source file ending .bb
+
+* Version 1.1 fixes
+Fixed bug where enemies would congregate at bottom right of screen
+Lowered min requirements to a A500 with 512k slow ram (there is some slowdown
+when many things on screen)
+Fixed kickstart requirements, now will work with kickstart 1.3
+Cleaned up code a fair bit, still messy mind.
+Learn't a lot about amiga bitplanes, :)
+
